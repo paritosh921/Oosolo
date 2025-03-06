@@ -1,0 +1,15 @@
+QUERY: clear
+TYPE: search_results
+TIMESTAMP: 2025-03-06 14:05:18
+
+================================================================================
+
+https://www.cas.org/resources/cas-insights/scientific-breakthroughs-2025-emerging-trends-watch
+https://hbr.org/2025/01/9-trends-that-will-shape-work-in-2025-and-beyond
+https://www.mckinsey.com/capabilities/mckinsey-digital/our-insights/superagency-in-the-workplace-empowering-people-to-unlock-ais-full-potential-at-work
+https://nationalcioreview.com/articles-insights/gartner-identifies-top-trends-in-data-and-analytics-for-2025/
+https://studyfinds.org/9-predictions-biggest-research-breakthroughs-202/
+https://www.clinicalresearchnewsonline.com/news/2025/01/07/trendspotting-predictions-for-clinical-research-in-2025
+https://www.nature.com/articles/d41586-024-03943-9
+https://www.gartner.com/en/newsroom/press-releases/2024-10-22-gartner-unveils-top-predictions-for-it-organizations-and-users-in-2025-and-beyond
+https://researchworld.com/articles/trends-for-2025
