@@ -18,3 +18,12 @@ OllamaSonar is a powerful web research assistant that searches the internet, scr
 2. Install dependencies:
    ```bash
    pip install -r requirements.txt
+
+3. Ollama:
+   ```bash
+      ollama seve
+
+4. Run the project:
+   ```bash
+   python ollama_test_1.py --mode cli
+
