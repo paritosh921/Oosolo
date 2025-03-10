@@ -1,0 +1,15 @@
+QUERY: What is quantum computing?
+TYPE: search_results
+TIMESTAMP: 2025-03-10 20:40:25
+
+================================================================================
+
+https://www.itprotoday.com/high-performance-computing/quantum-computing-trends-and-predictions-2025-from-industry-insiders
+https://thequantuminsider.com/2024/12/31/2025-expert-quantum-predictions-quantum-computing/
+https://www.moodys.com/web/en/us/insights/quantum/quantum-computings-six-most-important-trends-for-2025.html
+https://www.cio.inc/quantum-computing-in-2025-from-promise-to-reality-a-27184
+https://www.csiro.au/en/news/All/Articles/2025/January/2025-huge-advances-in-quantum-computing
+https://quantumzeitgeist.com/2025-guide-to-quantum-computers/
+https://www.trailyn.com/10-key-quantum-computing-breakthroughs-in-2025/
+https://www.analyticsinsight.net/quantum-computing-analytics-insight/top-trends-shaping-quantum-computing-in-2025
+https://www.startus-insights.com/innovators-guide/quantum-computing-outlook/

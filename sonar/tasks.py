@@ -11,6 +11,8 @@ import time
 from celery.signals import worker_ready
 import redis
 import tiktoken
+import threading
+from celery.utils.log import get_task_logger
 
 # Initialize the tokenizer for counting tokens
 tokenizer = tiktoken.get_encoding("cl100k_base")
@@ -57,13 +59,18 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1  # Don't prefetch more tasks than can be processed
 )
 
-@celery_app.task(bind=True, name='sonar.tasks.research_task', rate_limit='10/m')
+logger = get_task_logger(__name__)
+
+@celery_app.task(bind=True, name='sonar.tasks.research_task', priority=5, max_retries=3)
 def research_task(self, query, model="gemma2:2b", num_sources=6, priority=5):
     """Process a research query asynchronously with priority"""
+    # Set task priority
+    self.request.delivery_info['priority'] = priority
+    
+    start_time = time.time()
+    logger.info(f"Starting task for query: {query}")
+    
     try:
-        # Set task priority based on user plan (if supported by broker)
-        self.request.delivery_info['priority'] = priority
-        
         print(f"🔍 Starting research task for query: {query}")
         
         # Initialize OllamaSonar
@@ -86,9 +93,12 @@ def research_task(self, query, model="gemma2:2b", num_sources=6, priority=5):
         
         print(f"✅ Research task completed. Result length: {len(result)} characters")
         
+        elapsed = time.time() - start_time
+        logger.info(f"Task completed in {elapsed:.2f} seconds")
         return result
     except Exception as e:
-        print(f"❌ Error in research task: {str(e)}")
+        elapsed = time.time() - start_time
+        logger.error(f"Task failed after {elapsed:.2f} seconds: {str(e)}")
         # Save error to file
         try:
             task_id = self.request.id
@@ -101,11 +111,13 @@ def research_task(self, query, model="gemma2:2b", num_sources=6, priority=5):
                     'error': str(e),
                     'task_id': task_id
                 }, f, ensure_ascii=False, indent=2)
-        except:
-            pass
+        except Exception as inner_e:
+            print(f"❌ Error saving error details: {str(inner_e)}")
         
-        # Re-raise the exception to mark the task as failed
-        raise
+        # Retry with exponential backoff
+        retry_count = self.request.retries
+        retry_delay = 5 * (2 ** retry_count)  # 5, 10, 20 seconds
+        raise self.retry(exc=e, countdown=retry_delay, max_retries=3)
 
 @worker_ready.connect
 def at_start(sender, **k):

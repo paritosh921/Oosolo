@@ -50,6 +50,10 @@ class OllamaSonar:
         self.database_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), "database")
         os.makedirs(self.database_folder, exist_ok=True)
         
+        # Add thread locks for shared resources
+        self.search_lock = threading.Lock()
+        self.llm_lock = threading.Lock()
+        
     def _save_intermediate_data(self, query, data_type, content):
         """Save intermediate data to a file for debugging and analysis"""
         # Create database folder if it doesn't exist
