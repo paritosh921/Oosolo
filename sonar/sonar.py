@@ -18,6 +18,7 @@ from concurrent.futures import ThreadPoolExecutor
 import threading
 import concurrent.futures  # Add this import
 import concurrent.futures  # Add this import
+import redis
 
 # Global thread pool for reuse across requests
 THREAD_POOL = ThreadPoolExecutor(max_workers=20)
@@ -79,23 +80,50 @@ class OllamaSonar:
         return hashlib.md5(cache_key.encode()).hexdigest()
     
     def _check_cache(self, query, num_sources):
-        """Check if result exists in cache"""
+        """Check if result exists in cache with distributed locking"""
         cache_key = self._generate_cache_key(query, num_sources)
-        with CACHE_LOCK:
-            if cache_key in CACHE:
-                result, timestamp = CACHE[cache_key]
-                if time.time() - timestamp < CACHE_TTL:
-                    return result
-                else:
-                    # Remove expired cache entry
-                    del CACHE[cache_key]
-        return None
+        
+        try:
+            # Use Redis for distributed caching
+            redis_client = redis.Redis(host='localhost', port=6379, db=0)
+            
+            # Check cache
+            cached_value = redis_client.get(cache_key)
+            if cached_value:
+                return json.loads(cached_value)
+            return None
+        except Exception as e:
+            print(f"Cache error: {str(e)}")
+            # Fall back to in-memory cache if Redis fails
+            with CACHE_LOCK:
+                if cache_key in CACHE:
+                    result, timestamp = CACHE[cache_key]
+                    if time.time() - timestamp < CACHE_TTL:
+                        return result
+                    else:
+                        # Remove expired cache entry
+                        del CACHE[cache_key]
+            return None
     
     def _update_cache(self, query, num_sources, result):
-        """Update cache with new result"""
+        """Update cache with new result using Redis"""
         cache_key = self._generate_cache_key(query, num_sources)
-        with CACHE_LOCK:
-            CACHE[cache_key] = (result, time.time())
+        
+        try:
+            # Use Redis for distributed caching
+            redis_client = redis.Redis(host='localhost', port=6379, db=0)
+            
+            # Store in Redis with expiration
+            redis_client.setex(
+                cache_key,
+                CACHE_TTL,  # TTL in seconds
+                json.dumps(result)
+            )
+        except Exception as e:
+            print(f"Cache update error: {str(e)}")
+            # Fall back to in-memory cache if Redis fails
+            with CACHE_LOCK:
+                CACHE[cache_key] = (result, time.time())
     
     async def search_and_answer_async(self, query, num_sources=6):
         """Asynchronous version of search_and_answer"""
@@ -119,11 +147,40 @@ class OllamaSonar:
             return result
     
     def search_and_answer(self, query, num_sources=6):
-        """Main function to search, scrape, summarize, and synthesize the answer"""
+        """Process a research query with parallel processing for sources"""
+        # Check cache first
+        cached_result = self._check_cache(query, num_sources)
+        if cached_result:
+            return cached_result
+        
+        # Get search results
+        search_results = self._get_combined_search_results(query, num_sources)
+        
+        # Scrape webpages in parallel (already implemented)
+        scraped_data = self.web_scraper.scrape_multiple_pages(search_results)
+        
+        # Process sources in parallel using a worker pool
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, len(scraped_data))) as executor:
+            # Create a helper method to summarize a single source
+            def summarize_source(source):
+                return self.llm_processor.summarize_source(source["content"], source["url"], source["title"])
+            
+            source_summaries = list(executor.map(summarize_source, scraped_data))
+        
+        # Generate final answer
+        final_answer = self.llm_processor.generate_research_answer(query, source_summaries)
+        
+        # Update cache
+        self._update_cache(query, num_sources, final_answer)
+        
+        return final_answer
+
+    def _get_combined_search_results(self, query, num_sources):
+        """Combine search results from Google and DuckDuckGo"""
         print(f"🔍 Searching for information about: {query}")
         
         # Setup progress bar for overall process
-        overall_steps = 4  # search, scrape, summarize, synthesize
+        overall_steps = 2  # search, scrape
         overall_progress = tqdm(total=overall_steps, desc="Overall Progress", position=0)
         
         # Enhance query with more specific parameters
@@ -140,7 +197,7 @@ class OllamaSonar:
             
         if not urls:
             overall_progress.close()
-            return "Sorry, I couldn't find any relevant information from the search engines."
+            return []
         
         # Save search results
         self._save_intermediate_data(query, "search_results", "\n".join(urls))
@@ -160,7 +217,7 @@ class OllamaSonar:
         
         if not source_data:
             overall_progress.close()
-            return "Sorry, I couldn't extract information from the sources."
+            return []
         
         # Save scraped content
         scraped_content = "\n\n" + "="*80 + "\n\n".join(

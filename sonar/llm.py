@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 from langchain_ollama import OllamaLLM
 import sys
 import os
+import asyncio
 
 class LLMProcessor:
     """Processor for LLM operations like summarization and synthesis."""
@@ -216,3 +217,19 @@ Keep the final answer under 250 words. Focus only on the most recent and relevan
             return "3"  # Default to middle score if no score found
         except Exception:
             return "3"  # Default to middle score on error
+
+    # Add this method to process multiple prompts concurrently
+    async def process_multiple_prompts(self, prompts_list):
+        """Process multiple prompts concurrently"""
+        tasks = []
+        for prompt in prompts_list:
+            tasks.append(self.process_prompt_async(prompt))
+        
+        return await asyncio.gather(*tasks)
+
+    # Add an async version of process_prompt
+    async def process_prompt_async(self, prompt):
+        """Process a prompt asynchronously"""
+        # Create a wrapper for the synchronous method
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self.process_prompt, prompt)

@@ -52,13 +52,18 @@ celery_app.conf.update(
     task_track_started=True,
     task_time_limit=600,  # 10 minutes max per task
     broker_connection_retry_on_startup=True,
-    broker_connection_max_retries=10
+    broker_connection_max_retries=10,
+    worker_concurrency=4,  # Process 4 tasks concurrently per worker
+    worker_prefetch_multiplier=1  # Don't prefetch more tasks than can be processed
 )
 
-@celery_app.task(bind=True, name='sonar.tasks.research_task')
-def research_task(self, query, model="gemma2:2b", num_sources=6):
-    """Process a research query asynchronously"""
+@celery_app.task(bind=True, name='sonar.tasks.research_task', rate_limit='10/m')
+def research_task(self, query, model="gemma2:2b", num_sources=6, priority=5):
+    """Process a research query asynchronously with priority"""
     try:
+        # Set task priority based on user plan (if supported by broker)
+        self.request.delivery_info['priority'] = priority
+        
         print(f"🔍 Starting research task for query: {query}")
         
         # Initialize OllamaSonar

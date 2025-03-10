@@ -51,7 +51,7 @@ def main():
         # Build the command to run celery directly as a subprocess
         cmd = [
             python_exe, "-m", "celery", 
-            "-A", "sonar.tasks.celery_app", 
+            "-A", "sonar.tasks", 
             "worker",
             "--concurrency", str(args.workers),
             "--loglevel", "INFO",

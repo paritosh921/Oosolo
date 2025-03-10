@@ -19,6 +19,8 @@ from .sonar import OllamaSonar
 import asyncio
 from .tasks import research_task
 import redis
+from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
 
 # Initialize the tokenizer for counting tokens
 tokenizer = tiktoken.get_encoding("cl100k_base")  # Using OpenAI's tokenizer as a standard
@@ -140,6 +142,29 @@ def is_redis_available():
     except Exception as e:
         print(f"❌ Unexpected Redis error: {str(e)}")
         return False
+
+# Add this startup event
+@app.on_event("startup")
+async def startup():
+    # Initialize rate limiter with Redis
+    try:
+        # Comment out the rate limiter initialization for now
+        # redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+        # await FastAPILimiter.init(redis_client)
+        # print("✅ Rate limiter initialized with Redis")
+        print("⚠️ Rate limiter disabled for now")
+    except Exception as e:
+        print(f"⚠️ Failed to initialize rate limiter: {str(e)}")
+
+# Add this helper function to get rate limit based on user plan
+def get_rate_limit(user):
+    """Get rate limit based on user plan"""
+    if user["plan"] == "basic":
+        return "5/minute"
+    elif user["plan"] == "pro":
+        return "20/minute"
+    else:  # enterprise
+        return "100/minute"
 
 # API endpoints
 @app.post("/api/research", response_model=Dict[str, Any])

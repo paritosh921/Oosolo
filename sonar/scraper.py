@@ -208,9 +208,12 @@ class WebScraper:
                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
             }
     def scrape_multiple_pages(self, urls, progress_bar=None):
-        """Scrape multiple webpages in parallel"""
+        """Scrape multiple webpages in parallel with adaptive concurrency"""
         results = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        # Adjust workers based on number of URLs
+        max_workers = min(10, len(urls))  # Increase from 5 to 10
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_url = {executor.submit(self.scrape_webpage, url): url for url in urls}
             for future in concurrent.futures.as_completed(future_to_url):
                 result = future.result()
