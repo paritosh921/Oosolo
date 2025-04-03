@@ -8,7 +8,7 @@ OllamaSonar is a powerful web research assistant that searches the internet, scr
 - **Intelligent Scraping**: Extracts relevant content from web pages
 - **Chain of Thought Analysis**: Uses LLMs to analyze and synthesize information
 - **Token-Based Billing**: Track input and output tokens for usage-based pricing
-- **Multiple Pricing Plans**: Basic, Pro, and Enterprise plans with different rates
+
 
 ## Getting Started
 
